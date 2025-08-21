@@ -5,14 +5,19 @@ mod config;
 mod execute;
 mod fingerprint;
 mod fs;
+mod lint;
 mod maybe_str;
 mod schedule;
 mod str;
+mod test;
+mod vite;
 
 #[cfg(test)]
 mod test_utils;
 
+use std::collections::HashMap;
 use std::path::PathBuf;
+use std::pin::Pin;
 use std::sync::Arc;
 
 use clap::{Parser, Subcommand};
@@ -70,6 +75,21 @@ pub enum Commands {
         #[clap(long, conflicts_with = "topological")]
         no_topological: bool,
     },
+    Lint {
+        #[clap(last = true)]
+        /// Arguments to pass to oxlint
+        args: Vec<String>,
+    },
+    Build {
+        #[clap(last = true)]
+        /// Arguments to pass to vite build
+        args: Vec<String>,
+    },
+    Test {
+        #[clap(last = true)]
+        /// Arguments to pass to vite test
+        args: Vec<String>,
+    },
 }
 
 /// Resolve boolean flag value considering both positive and negative forms.
@@ -77,6 +97,30 @@ pub enum Commands {
 /// Otherwise, returns the value of the positive form.
 const fn resolve_bool_flag(positive: bool, negative: bool) -> bool {
     if negative { false } else { positive }
+}
+
+pub struct CliOptions<
+    Lint: Future<Output = Result<ResolveCommandResult, Error>> = Pin<
+        Box<dyn Future<Output = Result<ResolveCommandResult, Error>>>,
+    >,
+    LintFn: Fn() -> Lint = Box<dyn Fn() -> Lint>,
+    Vite: Future<Output = Result<ResolveCommandResult, Error>> = Pin<
+        Box<dyn Future<Output = Result<ResolveCommandResult, Error>>>,
+    >,
+    ViteFn: Fn() -> Vite = Box<dyn Fn() -> Vite>,
+    Test: Future<Output = Result<ResolveCommandResult, Error>> = Pin<
+        Box<dyn Future<Output = Result<ResolveCommandResult, Error>>>,
+    >,
+    TestFn: Fn() -> Test = Box<dyn Fn() -> Test>,
+> {
+    pub lint: LintFn,
+    pub vite: ViteFn,
+    pub test: TestFn,
+}
+
+pub struct ResolveCommandResult {
+    pub bin_path: String,
+    pub envs: HashMap<String, String>,
 }
 
 /// Main entry point for vite-plus task execution.
@@ -108,8 +152,19 @@ const fn resolve_bool_flag(positive: bool, negative: bool) -> bool {
 /// 4. Execute plan
 ///    - For each task: check cache → execute/replay → update cache
 /// ```
-#[tracing::instrument]
-pub async fn main(cwd: PathBuf, args: Args) -> Result<(), Error> {
+#[tracing::instrument(skip(options))]
+pub async fn main<
+    Lint: Future<Output = Result<ResolveCommandResult, Error>>,
+    LintFn: Fn() -> Lint,
+    Vite: Future<Output = Result<ResolveCommandResult, Error>>,
+    ViteFn: Fn() -> Vite,
+    Test: Future<Output = Result<ResolveCommandResult, Error>>,
+    TestFn: Fn() -> Test,
+>(
+    cwd: PathBuf,
+    args: Args,
+    options: Option<CliOptions<Lint, LintFn, Vite, ViteFn, Test, TestFn>>,
+) -> Result<(), Error> {
     let mut recursive_run = false;
     let mut parallel_run = false;
     let (tasks, mut workspace, task_args) = match &args.commands {
@@ -137,6 +192,30 @@ pub async fn main(cwd: PathBuf, args: Args) -> Result<(), Error> {
             };
             let workspace = Workspace::load(cwd, topological_run)?;
             (tasks, workspace, Arc::<[Str]>::from(task_args.clone()))
+        }
+        Some(Commands::Lint { args }) => {
+            let mut workspace = Workspace::partial_load(cwd)?;
+            if let Some(lint_fn) = options.map(|o| o.lint) {
+                lint::lint(lint_fn, &mut workspace, args).await?;
+                workspace.unload().await?;
+            }
+            return Ok(());
+        }
+        Some(Commands::Build { args }) => {
+            let mut workspace = Workspace::partial_load(cwd)?;
+            if let Some(vite_fn) = options.map(|o| o.vite) {
+                vite::create_vite("build", vite_fn, &mut workspace, args).await?;
+                workspace.unload().await?;
+            }
+            return Ok(());
+        }
+        Some(Commands::Test { args }) => {
+            let mut workspace = Workspace::partial_load(cwd)?;
+            if let Some(test_fn) = options.map(|o| o.test) {
+                test::test(test_fn, &mut workspace, args).await?;
+                workspace.unload().await?;
+            }
+            return Ok(());
         }
         None => {
             let workspace = Workspace::load(cwd, false)?;
@@ -236,33 +315,58 @@ mod tests {
     #[test]
     fn test_args_basic_task() {
         let args = Args::try_parse_from(&["vite-plus", "build"]).unwrap();
-        assert_eq!(args.task, Some("build".into()));
+        assert_eq!(args.task, None);
         assert!(args.task_args.is_empty());
-        assert!(args.commands.is_none());
+        assert!(matches!(args.commands, Some(Commands::Build { .. })));
         assert!(!args.debug);
     }
 
     #[test]
     fn test_args_with_task_args() {
+        // Now "test" is a dedicated command, so let's use a different task name for implicit mode
         let args =
-            Args::try_parse_from(&["vite-plus", "test", "--", "--watch", "--verbose"]).unwrap();
-        assert_eq!(args.task, Some("test".into()));
+            Args::try_parse_from(&["vite-plus", "dev", "--", "--watch", "--verbose"]).unwrap();
+        assert_eq!(args.task, Some("dev".into()));
         assert_eq!(args.task_args, vec!["--watch", "--verbose"]);
         assert!(args.commands.is_none());
         assert!(!args.debug);
     }
 
     #[test]
+    fn test_args_test_command() {
+        let args = Args::try_parse_from(&["vite-plus", "test"]).unwrap();
+        assert_eq!(args.task, None);
+        assert!(args.task_args.is_empty());
+        assert!(matches!(args.commands, Some(Commands::Test { .. })));
+        assert!(!args.debug);
+    }
+
+    #[test]
+    fn test_args_test_command_with_args() {
+        let args =
+            Args::try_parse_from(&["vite-plus", "test", "--", "--watch", "--coverage"]).unwrap();
+        assert_eq!(args.task, None);
+        assert!(args.task_args.is_empty());
+        if let Some(Commands::Test { args }) = &args.commands {
+            assert_eq!(args, &vec!["--watch".to_string(), "--coverage".to_string()]);
+        } else {
+            panic!("Expected Test command");
+        }
+    }
+
+    #[test]
     fn test_args_debug_flag() {
         let args = Args::try_parse_from(&["vite-plus", "--debug", "build"]).unwrap();
-        assert_eq!(args.task, Some("build".into()));
+        assert_eq!(args.task, None);
+        assert!(matches!(args.commands, Some(Commands::Build { .. })));
         assert!(args.debug);
     }
 
     #[test]
     fn test_args_debug_flag_short() {
         let args = Args::try_parse_from(&["vite-plus", "-d", "build"]).unwrap();
-        assert_eq!(args.task, Some("build".into()));
+        assert_eq!(args.task, None);
+        assert!(matches!(args.commands, Some(Commands::Build { .. })));
         assert!(args.debug);
     }
 
@@ -513,8 +617,22 @@ mod tests {
         ])
         .unwrap();
 
-        assert_eq!(args.task, Some("test".into()));
-        assert_eq!(args.task_args, vec!["--config", "jest.config.js", "--coverage", "--watch"]);
+        // "test" is now a dedicated command
+        assert_eq!(args.task, None);
+        assert!(args.task_args.is_empty());
+        if let Some(Commands::Test { args }) = &args.commands {
+            assert_eq!(
+                args,
+                &vec![
+                    "--config".to_string(),
+                    "jest.config.js".to_string(),
+                    "--coverage".to_string(),
+                    "--watch".to_string()
+                ]
+            );
+        } else {
+            panic!("Expected Test command");
+        }
     }
 
     #[test]
@@ -570,9 +688,13 @@ mod tests {
             panic!("Expected Run command");
         }
 
-        // Verify args2: implicit mode
-        assert_eq!(args2.task, Some("build".into()));
-        assert_eq!(args2.task_args, vec!["--watch", "--mode=development"]);
-        assert!(args2.commands.is_none());
+        // Verify args2: now maps to Build command instead of implicit mode
+        assert_eq!(args2.task, None);
+        assert!(args2.task_args.is_empty()); // Build command captures args directly, not via task_args
+        if let Some(Commands::Build { args }) = &args2.commands {
+            assert_eq!(args, &vec!["--watch".to_string(), "--mode=development".to_string()]);
+        } else {
+            panic!("Expected Build command");
+        }
     }
 }

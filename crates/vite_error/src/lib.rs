@@ -79,6 +79,15 @@ pub enum Error {
     #[error(transparent)]
     SerdeYmlError(#[from] serde_yml::Error),
 
+    #[error("Lint failed")]
+    LintFailed { status: String, reason: String },
+
+    #[error("Vite failed")]
+    ViteError { status: String, reason: String },
+
+    #[error("Test failed")]
+    TestFailed { status: String, reason: String },
+
     #[error(transparent)]
     AnyhowError(#[from] anyhow::Error),
 }
