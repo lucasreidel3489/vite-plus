@@ -69,6 +69,19 @@ impl Workspace {
         Self::partial_load_with_cache_path(cwd, None)
     }
 
+    fn get_cache_path_of_workspace(workspace_root: &AbsolutePath) -> AbsolutePathBuf {
+        if let Ok(env_cache_path) = std::env::var("VITE_CACHE_PATH") {
+            AbsolutePathBuf::new(env_cache_path.into()).expect("Cache path should be absolute")
+        } else {
+            workspace_root.join("node_modules/.vite/task-cache")
+        }
+    }
+
+    pub fn get_cache_path(cwd: &AbsolutePath) -> Result<AbsolutePathBuf, Error> {
+        let (workspace_root, _, _) = Self::determine_current_package_path(cwd)?;
+        Ok(Self::get_cache_path_of_workspace(workspace_root))
+    }
+
     pub fn partial_load_with_cache_path(
         cwd: AbsolutePathBuf,
         cache_path: Option<AbsolutePathBuf>,
@@ -77,13 +90,8 @@ impl Workspace {
         let (workspace_root, cwd, current_package_path) =
             Self::determine_current_package_path(&cwd)?;
 
-        let cache_path = cache_path.unwrap_or_else(|| {
-            if let Ok(env_cache_path) = std::env::var("VITE_CACHE_PATH") {
-                AbsolutePathBuf::new(env_cache_path.into()).expect("Cache path should be absolute")
-            } else {
-                workspace_root.join("node_modules/.vite/task-cache.db")
-            }
-        });
+        let cache_path =
+            cache_path.unwrap_or_else(|| Self::get_cache_path_of_workspace(&workspace_root));
 
         if !cache_path.as_path().exists()
             && let Some(cache_dir) = cache_path.as_path().parent()
@@ -91,7 +99,7 @@ impl Workspace {
             tracing::info!("Creating task cache directory at {}", cache_dir.display());
             std::fs::create_dir_all(cache_dir)?;
         }
-        let task_cache = TaskCache::load_from_file(&cache_path)?;
+        let task_cache = TaskCache::load_from_path(&cache_path)?;
 
         let package_json_path = workspace_root.join("package.json");
         let package_json = if package_json_path.as_path().exists() {
@@ -137,13 +145,8 @@ impl Workspace {
             }
         }
 
-        let cache_path = cache_path.unwrap_or_else(|| {
-            if let Ok(env_cache_path) = std::env::var("VITE_CACHE_PATH") {
-                AbsolutePathBuf::new(env_cache_path.into()).expect("Cache path should be absolute")
-            } else {
-                workspace_root.join("node_modules/.vite/task-cache.db")
-            }
-        });
+        let cache_path =
+            cache_path.unwrap_or_else(|| Self::get_cache_path_of_workspace(workspace_root));
 
         if !cache_path.as_path().exists()
             && let Some(cache_dir) = cache_path.as_path().parent()
@@ -151,7 +154,7 @@ impl Workspace {
             tracing::info!("Creating task cache directory at {}", cache_dir.display());
             std::fs::create_dir_all(cache_dir)?;
         }
-        let task_cache = TaskCache::load_from_file(&cache_path)?;
+        let task_cache = TaskCache::load_from_path(&cache_path)?;
 
         // Build the complete task graph
         let mut task_graph_builder = TaskGraphBuilder::default();

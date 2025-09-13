@@ -1,6 +1,7 @@
 use diff::Diff;
 use rusqlite::config::DbConfig;
 use std::fmt::Display;
+use std::io::Write;
 use std::sync::Arc;
 use vite_path::AbsolutePath;
 
@@ -79,9 +80,13 @@ impl Display for FingerprintMismatch {
 }
 
 impl TaskCache {
-    pub fn load_from_file(path: impl AsRef<AbsolutePath>) -> Result<Self, Error> {
+    pub fn load_from_path(path: impl AsRef<AbsolutePath>) -> Result<Self, Error> {
         let path = path.as_ref();
-        let conn = Connection::open(path.as_path())?;
+        tracing::info!("Creating task cache directory at {:?}", path);
+        std::fs::create_dir_all(path)?;
+
+        let db_path = path.join("cache.db");
+        let conn = Connection::open(db_path.as_path())?;
         conn.execute_batch("PRAGMA journal_mode=WAL; BEGIN EXCLUSIVE;")?;
         loop {
             let user_version: u32 = conn.query_one("PRAGMA user_version", (), |row| row.get(0))?;
@@ -96,16 +101,10 @@ impl TaskCache {
                         "CREATE TABLE taskrun_to_command (key BLOB PRIMARY KEY, value BLOB);",
                         (),
                     )?;
-                    conn.execute("PRAGMA user_version = 2", ())?;
+                    conn.execute("PRAGMA user_version = 1", ())?;
                 }
-                1 => {
-                    // internal versions during dev, we just rebuild the whole cache
-                    conn.set_db_config(DbConfig::SQLITE_DBCONFIG_RESET_DATABASE, true)?;
-                    conn.execute("VACUUM", ())?;
-                    conn.set_db_config(DbConfig::SQLITE_DBCONFIG_RESET_DATABASE, false)?;
-                }
-                2 => break, // current version
-                3.. => return Err(Error::UnrecognizedDbVersion(user_version)),
+                1 => break, // current version
+                2.. => return Err(Error::UnrecognizedDbVersion(user_version)),
             }
         }
         conn.execute_batch("COMMIT")?;
@@ -239,5 +238,35 @@ impl TaskCache {
         command_fingerprint: &CommandFingerprint,
     ) -> Result<(), Error> {
         self.upsert("taskrun_to_command", task_run_key, command_fingerprint).await
+    }
+
+    async fn list_table<K: Decode<()> + Serialize, V: Decode<()> + Serialize>(
+        &self,
+        table: &str,
+        out: &mut impl Write,
+    ) -> Result<(), Error> {
+        let conn = self.conn.lock().await;
+        let mut select_stmt = conn.prepare_cached(&format!("SELECT key, value FROM {}", table))?;
+        let mut rows = select_stmt.query([])?;
+        while let Some(row) = rows.next()? {
+            let key_blob: Vec<u8> = row.get(0)?;
+            let value_blob: Vec<u8> = row.get(1)?;
+            let (key, _) = decode_from_slice::<K, _>(&key_blob, BINCODE_CONFIG)?;
+            let (value, _) = decode_from_slice::<V, _>(&value_blob, BINCODE_CONFIG)?;
+            writeln!(
+                out,
+                "{} => {}",
+                serde_json::to_string_pretty(&key)?,
+                serde_json::to_string_pretty(&value)?
+            )?;
+        }
+        Ok(())
+    }
+    pub async fn list(&self, mut out: impl Write) -> Result<(), Error> {
+        out.write_all(b"------- taskrun_to_command -------\n")?;
+        self.list_table::<TaskRunKey, CommandFingerprint>("taskrun_to_command", &mut out).await?;
+        out.write_all(b"------- command_cache -------\n")?;
+        self.list_table::<CommandFingerprint, CommandCacheValue>("command_cache", &mut out).await?;
+        Ok(())
     }
 }
