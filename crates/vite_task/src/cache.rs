@@ -2,7 +2,6 @@ use std::{fmt::Display, io::Write, sync::Arc};
 
 // use bincode::config::{Configuration, standard};
 use bincode::{Decode, Encode, decode_from_slice, encode_to_vec};
-use diff::Diff;
 use rusqlite::{Connection, OptionalExtension as _};
 use serde::Serialize;
 use tokio::sync::Mutex;
@@ -11,7 +10,7 @@ use vite_str::Str;
 
 use crate::{
     Error,
-    config::{CommandFingerprint, CommandFingerprintDiff, ResolvedTask, TaskId},
+    config::{CommandFingerprint, ResolvedTask, TaskId},
     execute::{ExecutedTask, StdOutput},
     fingerprint::{PostRunFingerprint, PostRunFingerprintMismatch},
     fs::FileSystem,
@@ -62,7 +61,7 @@ pub enum CacheMiss {
 pub enum FingerprintMismatch {
     /// Found the cache entry of the same task run, but the command fingerprint mismatches
     /// this happens when the command itself or an env changes.
-    CommandFingerprintMismatch(CommandFingerprintDiff),
+    CommandFingerprintMismatch(CommandFingerprint),
     /// Found the cache entry with the same command fingerprint, but the post-run fingerprint mismatches
     PostRunFingerprintMismatch(PostRunFingerprintMismatch),
 }
@@ -156,16 +155,14 @@ impl TaskCache {
                 self.upsert_taskrun_to_command(&task_run_key, command_fingerprint).await?;
                 Ok(Ok(cache_value))
             }
-        } else if let Some(task_run_fingerprint) =
+        } else if let Some(command_fingerprint_in_cache) =
             self.get_command_fingerprint_by_task_run_key(&task_run_key).await?
         {
             // No command cache found with the current command fingerprint,
             // but found a command fingerprint associated with the same task run key,
             // meaning the command or env has changed since last run
             Ok(Err(CacheMiss::FingerprintMismatch(
-                FingerprintMismatch::CommandFingerprintMismatch(
-                    command_fingerprint.diff(&task_run_fingerprint),
-                ),
+                FingerprintMismatch::CommandFingerprintMismatch(command_fingerprint_in_cache),
             )))
         } else {
             Ok(Err(CacheMiss::NotFound))

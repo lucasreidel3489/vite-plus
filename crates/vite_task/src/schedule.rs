@@ -4,12 +4,12 @@ use futures_core::future::BoxFuture;
 use futures_util::future::FutureExt as _;
 use petgraph::{algo::toposort, stable_graph::StableDiGraph};
 use tokio::io::AsyncWriteExt as _;
-use vite_path::{AbsolutePath, RelativePathBuf};
+use vite_path::AbsolutePath;
 
 use crate::{
     Error,
     cache::{CacheMiss, CommandCacheValue, TaskCache},
-    config::{DisplayOptions, ResolvedTask, TaskCommand, Workspace},
+    config::{DisplayOptions, ResolvedTask, Workspace},
     execute::{OutputKind, execute_task},
     fs::FileSystem,
 };
@@ -24,8 +24,7 @@ pub struct ExecutionPlan {
 /// Status of a task before execution
 #[derive(Debug)]
 pub struct PreExecutionStatus {
-    pub command: TaskCommand,
-    pub cwd: RelativePathBuf,
+    pub task: ResolvedTask,
     pub cache_status: CacheStatus,
     pub display_options: DisplayOptions,
 }
@@ -42,7 +41,6 @@ pub enum CacheStatus {
 /// Status of a task execution
 #[derive(Debug)]
 pub struct ExecutionStatus {
-    #[expect(dead_code)]
     pub pre_execution_status: PreExecutionStatus,
     /// `Ok` variant means the task was executed (or replayed), no matter the exit status is zero or non-zero.
     ///
@@ -132,28 +130,24 @@ impl ExecutionPlan {
         workspace: &mut Workspace,
     ) -> anyhow::Result<ExecutionStatus> {
         tracing::debug!("Executing task {}", step.display_name());
-
-        let command = step.resolved_command.fingerprint.command.clone();
-        let cwd = step.resolved_command.fingerprint.cwd.clone();
-
         let display_options = step.display_options;
 
         // Check cache and prepare execution
         let (cache_status, execute_or_replay) = get_cached_or_execute(
-            step,
+            step.clone(),
             &mut workspace.task_cache,
             &workspace.fs,
             &workspace.workspace_dir,
         )
         .await?;
 
-        let pre_execution_status =
-            PreExecutionStatus { command, cwd, cache_status, display_options };
+        let pre_execution_status = PreExecutionStatus { task: step, cache_status, display_options };
 
         print!("{}", pre_execution_status);
 
         // Execute or replay the task
         let exit_status = execute_or_replay.await?;
+        println!();
         Ok(ExecutionStatus { pre_execution_status, execution_result: Ok(exit_status) })
     }
 }
