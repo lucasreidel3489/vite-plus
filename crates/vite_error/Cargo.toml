@@ -12,7 +12,6 @@ anyhow = { workspace = true }
 bincode = { workspace = true }
 bstr = { workspace = true }
 nix = { workspace = true }
-petgraph = { workspace = true }
 rusqlite = { workspace = true }
 semver = { workspace = true }
 serde_json = { workspace = true }
@@ -21,6 +20,8 @@ thiserror = { workspace = true }
 tokio = { workspace = true }
 vite_path = { workspace = true }
 vite_str = { workspace = true }
+vite_task = { workspace = true }
+vite_workspace = { workspace = true }
 wax = { workspace = true }
 
 [target.'cfg(target_os = "windows")'.dependencies]
