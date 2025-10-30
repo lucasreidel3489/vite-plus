@@ -24,10 +24,12 @@ use crate::commands::{
     fmt::{FmtConfig, fmt},
     install::InstallCommand,
     lib_cmd::lib,
+    link::LinkCommand,
     lint::{LintConfig, lint},
     outdated::OutdatedCommand,
     remove::RemoveCommand,
     test::test,
+    unlink::UnlinkCommand,
     update::UpdateCommand,
     vite::vite as vite_cmd,
     why::WhyCommand,
@@ -408,6 +410,33 @@ pub enum Commands {
         #[arg(last = true, allow_hyphen_values = true)]
         pass_through_args: Option<Vec<String>>,
     },
+    /// Link packages for local development
+    #[command(alias = "ln")]
+    Link {
+        /// Package name or directory to link
+        /// If empty, registers current package globally
+        #[arg(value_name = "PACKAGE|DIR")]
+        package: Option<String>,
+
+        /// Arguments to pass to package manager
+        #[arg(allow_hyphen_values = true, trailing_var_arg = true)]
+        args: Vec<String>,
+    },
+    /// Unlink packages
+    Unlink {
+        /// Package name to unlink
+        /// If empty, unlinks current package globally
+        #[arg(value_name = "PACKAGE|DIR")]
+        package: Option<String>,
+
+        /// Unlink in every workspace package (pnpm/yarn@2+-specific)
+        #[arg(short = 'r', long)]
+        recursive: bool,
+
+        /// Arguments to pass to package manager
+        #[arg(allow_hyphen_values = true, trailing_var_arg = true)]
+        args: Vec<String>,
+    },
 }
 
 impl Commands {
@@ -421,6 +450,8 @@ impl Commands {
                 | Commands::Dedupe { .. }
                 | Commands::Outdated { .. }
                 | Commands::Why { .. }
+                | Commands::Link { .. }
+                | Commands::Unlink { .. }
         )
     }
 }
@@ -880,6 +911,15 @@ pub async fn main<
                     pass_through_args.as_deref(),
                 )
                 .await?;
+            return Ok(exit_status);
+        }
+        Commands::Link { package, args } => {
+            let exit_status = LinkCommand::new(cwd).execute(package.as_deref(), Some(args)).await?;
+            return Ok(exit_status);
+        }
+        Commands::Unlink { package, recursive, args } => {
+            let exit_status =
+                UnlinkCommand::new(cwd).execute(package.as_deref(), *recursive, Some(args)).await?;
             return Ok(exit_status);
         }
         Commands::Why {
