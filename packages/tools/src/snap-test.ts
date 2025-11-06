@@ -1,20 +1,27 @@
-import cp from 'node:child_process';
+import { npath } from '@yarnpkg/fslib';
+import { execute } from '@yarnpkg/shell';
 import { randomUUID } from 'node:crypto';
-import fs from 'node:fs';
+import fs, { readFileSync } from 'node:fs';
 import fsPromises from 'node:fs/promises';
+import { open } from 'node:fs/promises';
 import { cpus, tmpdir } from 'node:os';
 import path from 'node:path';
-import { debuglog, parseArgs, promisify } from 'node:util';
+import { debuglog, parseArgs } from 'node:util';
 
 import { isPassThroughEnv, replaceUnstableOutput } from './utils';
 
 const debug = debuglog('vite-plus/snap-test');
-const cpExec = promisify(cp.exec);
-const exec = async (command: string, options: cp.ExecOptionsWithStringEncoding) =>
-  cpExec(
-    command,
-    process.platform === 'win32' ? { ...options, shell: 'pwsh.exe' } : options,
-  );
+
+// Remove comments (starting with ' #') from command strings
+// `@yarnpkg/shell` doesn't parse comments.
+// This doesn't handle all edge cases (such as ' #' in quoted strings), but is good enough for our test cases.
+function stripComments(command: string): string {
+  if (command.trim().startsWith('#')) {
+    return '';
+  }
+  const commentStart = command.indexOf(' #');
+  return commentStart === -1 ? command : command.slice(0, commentStart);
+}
 
 /**
  * Run tasks with limited concurrency based on CPU count.
@@ -142,26 +149,43 @@ async function runTestCase(name: string, tempTmpDir: string, casesDir: string) {
 
   const newSnap: string[] = [];
 
+  const cwd = npath.toPortablePath(caseTmpDir);
   for (const command of steps.commands) {
     debug('running command: %s, cwd: %s, env: %o', command, caseTmpDir, env);
-    try {
-      const { stdout, stderr } = await exec(command, { env, cwd: caseTmpDir, encoding: 'utf-8' });
-      newSnap.push(`> ${command}`);
-      if (stdout) {
-        newSnap.push(replaceUnstableOutput(stdout, caseTmpDir));
-      }
-      if (stderr) {
-        newSnap.push(replaceUnstableOutput(stderr, caseTmpDir));
-      }
-    } catch (error: any) {
-      // add error exit code to the command
-      newSnap.push(`[${error.code}]> ${command}`);
-      if (error.stdout) {
-        newSnap.push(replaceUnstableOutput(error.stdout, caseTmpDir));
-      }
-      if (error.stderr) {
-        newSnap.push(replaceUnstableOutput(error.stderr, caseTmpDir));
-      }
+
+    // While `@yarnpkg/shell` supports capturing output via in-memory `Writable` streams,
+    // it seems not to have stable ordering of stdout/stderr chunks.
+    // To ensure stable ordering, we redirect outputs to a file instead.
+    const outputStreamPath = path.join(caseTmpDir, 'output.log');
+    const outputStream = await open(outputStreamPath, 'w');
+
+    const exitCode = await execute(stripComments(command), [], {
+      env,
+      cwd,
+      stdin: null,
+      // Declared to be `Writable` but `FileHandle` works too.
+      // @ts-expect-error
+      stderr: outputStream,
+      // @ts-expect-error
+      stdout: outputStream,
+      glob: {
+        // Disable glob expansion. Pass args like '--filter=*' as-is.
+        isGlobPattern: () => false,
+        match: async () => [],
+      },
+    });
+
+    await outputStream.close();
+
+    const output = readFileSync(outputStreamPath, 'utf-8');
+
+    let commandLine = `> ${command}`;
+    if (exitCode !== 0) {
+      commandLine = `[${exitCode}]` + commandLine;
+    }
+    newSnap.push(commandLine);
+    if (output.length > 0) {
+      newSnap.push(replaceUnstableOutput(output, caseTmpDir));
     }
   }
   const newSnapContent = newSnap.join('\n');

@@ -9,12 +9,16 @@
   "devDependencies": {
     "@oxc-node/cli": "catalog:",
     "@oxc-node/core": "catalog:",
-    "@types/semver": "catalog:",
     "@std/yaml": "catalog:",
+    "@types/semver": "catalog:",
     "minimatch": "catalog:",
     "semver": "catalog:"
   },
   "scripts": {
     "snap-test": "tool snap-test"
+  },
+  "dependencies": {
+    "@yarnpkg/fslib": "catalog:",
+    "@yarnpkg/shell": "catalog:"
   }
 }
