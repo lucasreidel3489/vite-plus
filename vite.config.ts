@@ -5,7 +5,7 @@ export default (<UserConfig>{
     rules: {
       'no-console': 'warn',
     },
-    excludePatterns: ['**/snap-tests/**', '**/snap-tests-todo/**'],
+    ignorePatterns: ['**/snap-tests/**', '**/snap-tests-todo/**'],
   },
   test: {
     exclude: [
@@ -33,9 +33,7 @@ export default (<UserConfig>{
     ],
     singleQuote: true,
     semi: true,
-    experimentalSortPackageJson: {
-      sortScripts: true,
-    },
+    experimentalSortPackageJson: true,
     experimentalSortImports: {
       groups: [
         ['type-import'],
