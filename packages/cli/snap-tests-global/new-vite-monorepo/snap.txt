@@ -17,7 +17,8 @@ vite.config.ts
   "type": "module",
   "scripts": {
     "ready": "vp fmt && vp lint --type-aware && vp run test -r && vp run build -r",
-    "dev": "vp run website#dev"
+    "dev": "vp run website#dev",
+    "prepare": "vp config"
   },
   "devDependencies": {
     "vite-plus": "catalog:"
@@ -126,7 +127,8 @@ vite.config.ts
   "type": "module",
   "scripts": {
     "ready": "vp fmt && vp lint --type-aware && vp run test -r && vp run build -r",
-    "dev": "vp run website#dev"
+    "dev": "vp run website#dev",
+    "prepare": "vp config"
   },
   "devDependencies": {
     "vite-plus": "catalog:"

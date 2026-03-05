@@ -8,6 +8,10 @@ pnpm@latest installing...
 
 pnpm@<semver> installed
 
+✔ Created vite.config.ts in vite.config.ts
+
+✔ Merged staged config into vite.config.ts
+
 Wrote agent instructions to CLAUDE.md
 ✔ Migration completed!
 

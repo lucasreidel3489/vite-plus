@@ -44,14 +44,14 @@ exports[`rewritePackageJson > should rewrite devDependencies and dependencies on
 }
 `;
 
-exports[`rewritePackageJson > should rewrite package.json scripts 1`] = `
+exports[`rewritePackageJson > should rewrite package.json scripts and extract staged config 1`] = `
 {
   "lint-staged": {
     "*.js": [
-      "vp lint --fix --type-aware",
-      "vp fmt --fix",
+      "oxlint --fix --type-aware",
+      "oxfmt --fix",
     ],
-    "*.ts": "vp fmt --fix",
+    "*.ts": "oxfmt --fix",
   },
   "scripts": {
     "build": "pnpm install && vp build -r && vp run build --watch && vp pack && tsc || exit 1",
@@ -85,5 +85,15 @@ exports[`rewritePackageJson > should rewrite package.json scripts 1`] = `
     "version": "vp --version",
     "version_short": "vp -v",
   },
+}
+`;
+
+exports[`rewritePackageJson > should rewrite package.json scripts and extract staged config 2`] = `
+{
+  "*.js": [
+    "vp lint --fix --type-aware",
+    "vp fmt --fix",
+  ],
+  "*.ts": "vp fmt --fix",
 }
 `;

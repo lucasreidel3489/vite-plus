@@ -16,6 +16,7 @@ import {
   cancelAndExit,
   defaultInteractive,
   downloadPackageManager,
+  promptGitHooks,
   runViteInstall,
   selectPackageManager,
   upgradeYarn,
@@ -26,6 +27,8 @@ import { detectWorkspace } from '../utils/workspace.js';
 import {
   checkVitestVersion,
   checkViteVersion,
+  installGitHooks,
+  preflightGitHooksSetup,
   rewriteMonorepo,
   rewriteStandaloneProject,
 } from './migrator.js';
@@ -60,6 +63,11 @@ const helpMessage = renderCliDoc({
         },
         { label: '--no-editor', description: 'Skip writing editor config files' },
         {
+          label: '--hooks',
+          description: 'Set up pre-commit hooks (default in non-interactive mode)',
+        },
+        { label: '--no-hooks', description: 'Skip pre-commit hooks setup' },
+        {
           label: '--no-interactive',
           description: 'Run in non-interactive mode (skip prompts and use defaults)',
         },
@@ -87,6 +95,7 @@ export interface MigrationOptions {
   help?: boolean;
   agent?: string | string[] | false;
   editor?: string | false;
+  hooks?: boolean;
 }
 
 function parseArgs() {
@@ -97,9 +106,10 @@ function parseArgs() {
     interactive?: boolean;
     agent?: string | string[] | false;
     editor?: string | false;
+    hooks?: boolean;
   }>(args, {
     alias: { h: 'help' },
-    boolean: ['help', 'interactive'],
+    boolean: ['help', 'interactive', 'hooks'],
     default: { interactive: defaultInteractive() },
   });
   const interactive = parsed.interactive;
@@ -118,6 +128,7 @@ function parseArgs() {
       help: parsed.help,
       agent: parsed.agent,
       editor: parsed.editor,
+      hooks: parsed.hooks,
     } as MigrationOptions,
   };
 }
@@ -212,10 +223,29 @@ async function main() {
     cancelAndExit('Vite+ cannot automatically migrate this project yet.', 1);
   }
 
+  let shouldSetupHooks = await promptGitHooks(options);
+
+  if (shouldSetupHooks) {
+    const reason = preflightGitHooksSetup(workspaceInfo.rootDir);
+    if (reason) {
+      prompts.log.warn(`⚠ ${reason}`);
+      shouldSetupHooks = false;
+    }
+  }
+
+  // Skip staged migration when hooks are disabled (--no-hooks or preflight failed).
+  // Without hooks, lint-staged config must stay in package.json so existing
+  // .husky/pre-commit scripts that invoke `npx lint-staged` keep working.
+  const skipStagedMigration = !shouldSetupHooks;
+
   if (workspaceInfo.isMonorepo) {
-    rewriteMonorepo(workspaceInfo);
+    rewriteMonorepo(workspaceInfo, skipStagedMigration);
   } else {
-    rewriteStandaloneProject(workspaceInfo.rootDir, workspaceInfo);
+    rewriteStandaloneProject(workspaceInfo.rootDir, workspaceInfo, skipStagedMigration);
+  }
+
+  if (shouldSetupHooks) {
+    installGitHooks(workspaceInfo.rootDir);
   }
 
   const selectedAgentTargetPaths = await selectAgentTargetPaths({

@@ -18,6 +18,8 @@ Rewrote imports in one file
 
   vite.config.ts
 
+✔ Merged staged config into vite.config.ts
+
 Wrote agent instructions to AGENTS.md
 ✔ Migration completed!
 
@@ -27,6 +29,9 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite-plus';
 
 export default defineConfig({
+  staged: {
+    "*": "vp check --fix"
+  },
   fmt: {
     "printWidth": 100,
     "tabWidth": 2,
@@ -61,7 +66,8 @@ cat: .oxfmtrc.json: No such file or directory
     "test:watch": "vp test --watch",
     "test": "vp test",
     "lint": "vp lint",
-    "fmt": "vp fmt"
+    "fmt": "vp fmt",
+    "prepare": "vp config"
   },
   "dependencies": {
     "testnpm2": "1.0.0"

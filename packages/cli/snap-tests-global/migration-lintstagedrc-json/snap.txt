@@ -13,6 +13,8 @@ Options:
   --no-agent        Skip writing agent instructions file
   --editor NAME     Write editor config files into the project.
   --no-editor       Skip writing editor config files
+  --hooks           Set up pre-commit hooks (default in non-interactive mode)
+  --no-hooks        Skip pre-commit hooks setup
   --no-interactive  Run in non-interactive mode (skip prompts and use defaults)
   -h, --help        Show this help message
 
@@ -37,29 +39,24 @@ pnpm@latest installing...
 
 pnpm@<semver> installed
 
-✔ Rewrote lint-staged config in .lintstagedrc.json
+✔ Created vite.config.ts in vite.config.ts
+
+✔ Merged staged config into vite.config.ts
+
+⚠ .lintstagedrc.json found but "staged" already exists in vite.config.ts — please merge manually
 
 Wrote agent instructions to AGENTS.md
 ✔ Migration completed!
 
 
-> cat .lintstagedrc.json # check lintstagedrc.json
+> cat .lintstagedrc.json # check lintstagedrc.json (should be deleted after inlining)
 {
-  "*.js": "vp lint --fix"
+  "*.js": "oxlint --fix"
 }
 
 > cat package.json # check package.json
 {
   "name": "migration-lintstagedrc",
-  "lint-staged": {
-    "*.@(js|ts|tsx|yml|yaml|md|json|html|toml)": [
-      "vp fmt --staged",
-      "eslint --fix"
-    ],
-    "*.@(js|ts|tsx)": [
-      "vp lint --fix"
-    ]
-  },
   "pnpm": {
     "overrides": {
       "vite": "npm:@voidzero-dev/vite-plus-core@latest",
@@ -69,5 +66,24 @@ Wrote agent instructions to AGENTS.md
   "devDependencies": {
     "vite-plus": "latest"
   },
-  "packageManager": "pnpm@<semver>"
+  "packageManager": "pnpm@<semver>",
+  "scripts": {
+    "prepare": "vp config"
+  }
 }
+
+> cat vite.config.ts # check staged config migrated to vite.config.ts
+import { defineConfig } from 'vite-plus';
+
+export default defineConfig({
+  staged: {
+    "*.@(js|ts|tsx|yml|yaml|md|json|html|toml)": [
+      "vp fmt --staged",
+      "eslint --fix"
+    ],
+    "*.@(js|ts|tsx)": [
+      "vp lint --fix"
+    ]
+  },
+  
+});

@@ -10,6 +10,8 @@ Rewrote imports in one file
 
   vite.config.ts
 
+✔ Merged staged config into vite.config.ts
+
 Wrote agent instructions to AGENTS.md
 ✔ Migration completed!
 
@@ -19,6 +21,9 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite-plus';
 
 export default defineConfig({
+  staged: {
+    "*": "vp check --fix"
+  },
   plugins: [react()],
 });
 
@@ -27,7 +32,8 @@ export default defineConfig({
   "name": "migration-monorepo-pnpm-overrides-dependency-selector",
   "version": "1.0.0",
   "scripts": {
-    "dev": "vp dev"
+    "dev": "vp dev",
+    "prepare": "vp config"
   },
   "devDependencies": {
     "vite": "catalog:",

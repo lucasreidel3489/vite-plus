@@ -12,6 +12,10 @@ Rewrote imports in one file
 
   test/hello.ts
 
+✔ Created vite.config.ts in vite.config.ts
+
+✔ Merged staged config into vite.config.ts
+
 Wrote agent instructions to AGENTS.md
 ✔ Migration completed!
 
@@ -24,7 +28,8 @@ Wrote agent instructions to AGENTS.md
     "test:ui": "vp test --ui",
     "test:coverage": "vp test run --coverage",
     "test:watch": "vp test --watch",
-    "test": "vp test"
+    "test": "vp test",
+    "prepare": "vp config"
   },
   "devDependencies": {
     "vite": "npm:@voidzero-dev/vite-plus-core@latest",

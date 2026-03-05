@@ -132,8 +132,10 @@ pub mod update;
 pub mod why;
 
 // Category B: JS Script Commands
+pub mod config;
 pub mod create;
 pub mod migrate;
+pub mod staged;
 pub mod version;
 
 // Category D: Environment Management

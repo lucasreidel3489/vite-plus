@@ -1,3 +1,4 @@
+> git init
 > vp migrate --no-interactive # migration should not support non-json format lintstagedrc
 VITE+ - The Unified Toolchain for the Web
 
@@ -8,13 +9,7 @@ pnpm@latest installing...
 
 pnpm@<semver> installed
 
-✘ .lintstagedrc is not JSON format file, auto migration is not supported
-
-✘ .lintstagedrc.yaml is not supported by auto migration
-
-✘ lint-staged.config.mjs is not supported by auto migration
-
-Please migrate the lint-staged config manually, see https://viteplus.dev/migration/#lint-staged for more details
+⚠ Unsupported lint-staged config format — skipping git hooks setup. Please configure git hooks manually.
 
 Wrote agent instructions to AGENTS.md
 ✔ Migration completed!
@@ -35,17 +30,22 @@ export default {
   '*.js': ['oxlint', 'oxfmt'],
 };
 
-> cat package.json # check package.json
+> cat package.json # check hooks setup skipped but husky/lint-staged removed from devDependencies
 {
   "name": "migration-lintstagedrc-not-support",
+  "scripts": {
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.6",
+    "vite-plus": "latest"
+  },
   "pnpm": {
     "overrides": {
       "vite": "npm:@voidzero-dev/vite-plus-core@latest",
       "vitest": "npm:@voidzero-dev/vite-plus-test@latest"
     }
-  },
-  "devDependencies": {
-    "vite-plus": "latest"
   },
   "packageManager": "pnpm@<semver>"
 }

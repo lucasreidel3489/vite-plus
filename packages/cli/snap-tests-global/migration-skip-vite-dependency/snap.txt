@@ -12,6 +12,10 @@ Rewrote imports in one file
 
   src/index.ts
 
+✔ Created vite.config.ts in vite.config.ts
+
+✔ Merged staged config into vite.config.ts
+
 Wrote agent instructions to AGENTS.md
 ✔ Migration completed!
 
@@ -54,5 +58,8 @@ export default defineConfig({
   "devDependencies": {
     "vite-plus": "latest"
   },
-  "packageManager": "pnpm@<semver>"
+  "packageManager": "pnpm@<semver>",
+  "scripts": {
+    "prepare": "vp config"
+  }
 }

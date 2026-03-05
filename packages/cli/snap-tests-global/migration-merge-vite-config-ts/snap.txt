@@ -16,6 +16,8 @@ Rewrote imports in one file
 
   vite.config.ts
 
+✔ Merged staged config into vite.config.ts
+
 Wrote agent instructions to AGENTS.md
 ✔ Migration completed!
 
@@ -28,6 +30,9 @@ import { playwright } from 'vite-plus/test/browser-playwright';
 import { defineConfig } from 'vite-plus';
 
 export default defineConfig({
+  staged: {
+    "*": "vp check --fix"
+  },
   fmt: {
     "printWidth": 100,
     "tabWidth": 2,
@@ -75,7 +80,8 @@ cat: .oxfmtrc.json: No such file or directory
     "fmt": "vp fmt",
     "fmt:fix": "vp fmt --fix",
     "fmt:staged": "vp fmt --staged",
-    "fmt:staged:fix": "vp fmt --staged --fix"
+    "fmt:staged:fix": "vp fmt --staged --fix",
+    "prepare": "vp config"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.0",

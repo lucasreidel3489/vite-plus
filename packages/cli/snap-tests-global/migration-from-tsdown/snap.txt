@@ -18,6 +18,8 @@ Rewrote imports in one file
 
   tsdown.config.ts
 
+✔ Merged staged config into vite.config.ts
+
 Wrote agent instructions to AGENTS.md
 ✔ Migration completed!
 
@@ -38,8 +40,10 @@ import tsdownConfig from './tsdown.config.js';
 import { defineConfig } from 'vite-plus';
 
 export default defineConfig({
+  staged: {
+    "*": "vp check --fix"
+  },
   pack: tsdownConfig,
-  
 });
 
 > cat package.json # check package.json
@@ -48,7 +52,8 @@ export default defineConfig({
   "scripts": {
     "build": "vp pack",
     "build:watch": "vp pack --watch",
-    "build:dts": "vp pack --dts"
+    "build:dts": "vp pack --dts",
+    "prepare": "vp config"
   },
   "devDependencies": {
     "vite": "npm:@voidzero-dev/vite-plus-core@latest",
@@ -85,8 +90,10 @@ import tsdownConfig from './tsdown.config.js';
 import { defineConfig } from 'vite-plus';
 
 export default defineConfig({
+  staged: {
+    "*": "vp check --fix"
+  },
   pack: tsdownConfig,
-  
 });
 
 > cat package.json # check package.json
@@ -95,7 +102,8 @@ export default defineConfig({
   "scripts": {
     "build": "vp pack",
     "build:watch": "vp pack --watch",
-    "build:dts": "vp pack --dts"
+    "build:dts": "vp pack --dts",
+    "prepare": "vp config"
   },
   "devDependencies": {
     "vite": "npm:@voidzero-dev/vite-plus-core@latest",

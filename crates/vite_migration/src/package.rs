@@ -39,7 +39,7 @@ pub fn rewrite_scripts(scripts_json: &str, rules_yaml: &str) -> Result<Option<St
 
     for value in scripts.values_mut() {
         if value.is_array() {
-            // lint-staged scripts can be an array of strings
+            // vite-staged/lint-staged scripts can be an array of strings
             // https://github.com/lint-staged/lint-staged?tab=readme-ov-file#packagejson-example
             if let Some(sub_scripts) = value.as_array_mut() {
                 for sub_script in sub_scripts.iter_mut() {
@@ -263,6 +263,11 @@ fix: vp pack
             rewrite_script("npm run type-check && oxlint --type-aware", &rules),
             "npm run type-check && vp lint --type-aware"
         );
+        // husky commands should NOT be rewritten by vite-tools rules
+        // (husky rule is in separate vite-prepare.yml, applied only to scripts.prepare)
+        assert_eq!(rewrite_script("husky", &rules), "husky");
+        assert_eq!(rewrite_script("husky install", &rules), "husky install");
+        assert_eq!(rewrite_script("husky || true", &rules), "husky || true");
     }
 
     #[test]

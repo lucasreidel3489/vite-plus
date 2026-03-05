@@ -538,6 +538,20 @@ pub enum Commands {
         args: Vec<String>,
     },
 
+    /// In-repo configuration (hooks, agent integration)
+    #[command(disable_help_flag = true)]
+    Config {
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+
+    /// Run vite-staged on Git staged files
+    #[command(disable_help_flag = true, name = "staged")]
+    Staged {
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+
     // =========================================================================
     // Category C: Local CLI Delegation (stubs for now)
     // =========================================================================
@@ -1810,6 +1824,10 @@ pub async fn run_command_with_options(
         Commands::Create { args } => commands::create::execute(cwd, &args).await,
 
         Commands::Migrate { args } => commands::migrate::execute(cwd, &args).await,
+
+        Commands::Config { args } => commands::config::execute(cwd, &args).await,
+
+        Commands::Staged { args } => commands::staged::execute(cwd, &args).await,
 
         // Category C: Local CLI Delegation (stubs)
         Commands::Dev { args } => {

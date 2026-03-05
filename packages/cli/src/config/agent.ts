@@ -1,8 +1,7 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import * as prompts from '@voidzero-dev/vite-plus-prompts';
-import mri from 'mri';
 
 import {
   detectAgents,
@@ -10,39 +9,10 @@ import {
   type AgentConfig,
   type McpConfigTarget,
 } from '../utils/agent.js';
-import { renderCliDoc } from '../utils/help.js';
 import { writeJsonFile, readJsonFile } from '../utils/json.js';
 import { pkgRoot } from '../utils/path.js';
-import { linkSkillsForSpecificAgents } from '../utils/skills.js';
 
-// --- Arg parsing ---
-
-const helpMessage = renderCliDoc({
-  usage: 'vp init [OPTIONS]',
-  summary: 'Set up coding agent integration for an existing project.',
-  sections: [
-    {
-      title: 'Options',
-      rows: [{ label: '-h, --help', description: 'Show this help message' }],
-    },
-  ],
-});
-
-function parseArgs(): void {
-  const argv = mri(process.argv.slice(3), {
-    boolean: ['help'],
-    alias: { h: 'help' },
-  });
-
-  if (argv.help) {
-    process.stdout.write(helpMessage);
-    process.exit(0);
-  }
-}
-
-// --- Agent setup ---
-
-interface AgentSetupSelection {
+export interface AgentSetupSelection {
   instructionFilePath: 'CLAUDE.md' | 'AGENTS.md';
   agents: AgentConfig[];
 }
@@ -56,9 +26,6 @@ function detectInstructionFilePath(
   }
   if (existsSync(join(root, 'CLAUDE.md'))) {
     return 'CLAUDE.md';
-  }
-  if (existsSync(join(root, 'AGENTS.md'))) {
-    return 'AGENTS.md';
   }
   return 'AGENTS.md';
 }
@@ -100,9 +67,12 @@ async function pickAgentWhenUndetected(): Promise<AgentSetupSelection> {
   };
 }
 
-async function resolveAgentSetup(root: string): Promise<AgentSetupSelection> {
+export async function resolveAgentSetup(
+  root: string,
+  interactive: boolean,
+): Promise<AgentSetupSelection> {
   const detected = detectAgents(root);
-  if (detected.length > 0) {
+  if (detected.length > 0 || !interactive) {
     return {
       instructionFilePath: detectInstructionFilePath(root, detected),
       agents: detected,
@@ -132,7 +102,20 @@ const MARKER_CLOSE = '<!--/injected-by-vite-plus-->';
 const MARKER_BLOCK_RE =
   /<!--injected-by-vite-plus-v[\w.+-]+-->\n[\s\S]*?<!--\/injected-by-vite-plus-->/;
 
-function injectAgentBlock(root: string, filePath: string): void {
+export function hasExistingAgentInstructions(root: string): boolean {
+  for (const file of ['AGENTS.md', 'CLAUDE.md']) {
+    const fullPath = join(root, file);
+    if (existsSync(fullPath)) {
+      const content = readFileSync(fullPath, 'utf-8');
+      if (MARKER_OPEN_RE.test(content)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+export function injectAgentBlock(root: string, filePath: string): void {
   const fullPath = join(root, filePath);
   const version = getOwnVersion();
   const promptContent = readAgentPrompt();
@@ -212,25 +195,10 @@ function pickMcpTarget(root: string, targets: McpConfigTarget[]): McpConfigTarge
   if (targets.length === 1) {
     return targets[0];
   }
-  const existingTargets = targets.filter((t) => existsSync(join(root, t.filePath)));
-  if (existingTargets.length > 0) {
-    return existingTargets[0];
-  }
-  return targets[0];
+  return targets.find((t) => existsSync(join(root, t.filePath))) ?? targets[0];
 }
 
-function setupMcpConfig(root: string, selectedAgents: AgentConfig[]): void {
-  const mcpAgents: { agent: AgentConfig; targets: McpConfigTarget[] }[] = [];
-  const hintAgents: { agent: AgentConfig; hint: string }[] = [];
-
-  for (const agent of selectedAgents) {
-    if (agent.mcpConfig) {
-      mcpAgents.push({ agent, targets: agent.mcpConfig });
-    } else if (agent.mcpHint) {
-      hintAgents.push({ agent, hint: agent.mcpHint });
-    }
-  }
-
+export function setupMcpConfig(root: string, selectedAgents: AgentConfig[]): void {
   if (selectedAgents.length === 0) {
     prompts.note(
       JSON.stringify(
@@ -248,6 +216,17 @@ function setupMcpConfig(root: string, selectedAgents: AgentConfig[]): void {
     return;
   }
 
+  const mcpAgents: { agent: AgentConfig; targets: McpConfigTarget[] }[] = [];
+  const hintAgents: { agent: AgentConfig; hint: string }[] = [];
+
+  for (const agent of selectedAgents) {
+    if (agent.mcpConfig) {
+      mcpAgents.push({ agent, targets: agent.mcpConfig });
+    } else if (agent.mcpHint) {
+      hintAgents.push({ agent, hint: agent.mcpHint });
+    }
+  }
+
   // Print hints for agents without project-level config
   for (const { agent, hint } of hintAgents) {
     prompts.log.info(`${agent.displayName}: ${hint}`);
@@ -260,36 +239,3 @@ function setupMcpConfig(root: string, selectedAgents: AgentConfig[]): void {
     writeMcpConfigForTarget(root, target);
   }
 }
-
-// --- Main ---
-
-async function main() {
-  parseArgs();
-
-  const root = process.cwd();
-
-  prompts.intro('vp init');
-
-  // Step 1: Detect or select agents
-  const agentSetup = await resolveAgentSetup(root);
-
-  // Step 2: Inject agent instructions
-  injectAgentBlock(root, agentSetup.instructionFilePath);
-
-  // Step 3: MCP config (runs before skills so agent dirs like .claude/ exist)
-  setupMcpConfig(root, agentSetup.agents);
-
-  // Step 4: Link skills
-  if (agentSetup.agents.length > 0) {
-    linkSkillsForSpecificAgents(root, agentSetup.agents);
-  } else {
-    prompts.log.info('Skills linking skipped for generic agent setup');
-  }
-
-  prompts.outro('Agent setup complete');
-}
-
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
