@@ -613,7 +613,7 @@ WRAPPER_EOF
   echo -e "    ${BRIGHT_BLUE}vp create${NC}       Create a new project"
   echo -e "    ${BRIGHT_BLUE}vp env${NC}          Manage Node.js versions"
   echo -e "    ${BRIGHT_BLUE}vp install${NC}      Install dependencies"
-  echo -e "    ${BRIGHT_BLUE}vp dev${NC}          Start dev server"
+  echo -e "    ${BRIGHT_BLUE}vp migrate${NC}      Migrate to Vite+"
 
   if [ "$NODE_MANAGER_ENABLED" = "true" ] || [ "$NODE_MANAGER_ENABLED" = "already" ]; then
     echo ""
@@ -622,7 +622,7 @@ WRAPPER_EOF
   fi
 
   echo ""
-  echo -e "  Run ${BRIGHT_BLUE}vp help${NC} for more information."
+  echo -e "  Run ${BRIGHT_BLUE}vp help${NC} to see available commands."
 
   # Show restart note if PATH was added to shell config
   if [ "$PATH_CONFIGURED" = "true" ] && [ -n "$SHELL_CONFIG_UPDATED" ]; then
